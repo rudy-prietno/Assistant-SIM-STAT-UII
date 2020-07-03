@@ -1,5 +1,4 @@
 import subprocess
-import docker
 
 class commandline:
     def __init__(self, statement):
