@@ -1,10 +1,8 @@
-# try python:3.6-alpine and pypy:3.6
+# argument
+ARG TAG=3.6-alpine
 
-FROM python:3.6-alpine
-# FROM pypy:3.6
-
-# expose port in containers
-EXPOSE 5000
+# base images
+FROM python:${TAG}
 
 # Install gunicorn
 RUN pip install gunicorn
@@ -12,11 +10,20 @@ RUN pip install gunicorn
 # Install falcon
 RUN pip install falcon
 
-# copy create_api folder from local into folder /create in container
-COPY ./create_api /create_api
+# add create_api folder from local into folder /create_api in container
+ADD ./create_api /create_api
+
+# file permission
+RUN chmod +x ./create_api/environment.sh
+
+# expose port
+EXPOSE 3000
 
 # set working directory active in container
 WORKDIR /create_api
 
+# environment inisiate
+ENV env_var_name=${env_var_name} 
+
 # set command for entrypoint in terminal container
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "main:app"]
+CMD ["sh","environment.sh"]
