@@ -1,18 +1,20 @@
 version: "3.5"
 services:
+#------------------------------------------hadoop standlone cluster with two datanode--------------------------------------------------#
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
     container_name: namenode
     restart: always
-    ports: 
+    ports:
       - "50070:50070"
-      - "8020:8020"
     volumes:
       - hadoop_namenode:/hadoop/dfs/name
     environment:
       - CLUSTER_NAME=bigdatacluster
     env_file:
       - ./hadoop.env
+    networks:
+      - bigdatacluster
 
   datanode1:
     image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
@@ -20,6 +22,8 @@ services:
     restart: always
     volumes:
       - hadoop_datanode1:/hadoop/dfs/data
+    networks:
+      - bigdatacluster
     env_file:
       - ./hadoop.env
     environment:
@@ -33,6 +37,8 @@ services:
     restart: always
     volumes:
       - hadoop_datanode2:/hadoop/dfs/data
+    networks:
+      - bigdatacluster
     env_file:
       - ./hadoop.env
     environment:
@@ -44,14 +50,16 @@ services:
     image: bde2020/hadoop-resourcemanager:2.0.0-hadoop2.7.4-java8
     container_name: resourcemanager
     restart: always
-    ports: 
+    ports:
       - "8088:8088"
     depends_on:
       - namenode
       - datanode1
       - datanode2
+    networks:
+      - bigdatacluster
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075"
+      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075 datanode2:50075"
     env_file:
       - ./hadoop.env
 
@@ -67,13 +75,14 @@ services:
       - hadoop_historyserver:/hadoop/yarn/timeline
     env_file:
       - ./hadoop.env
+    networks:
+      - bigdatacluster
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075 resourcemanager:8088"
+      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075 datanode2:50075 resourcemanager:8088"
 
   nodemanager:
     image: bde2020/hadoop-nodemanager:2.0.0-hadoop2.7.4-java8
     container_name: nodemanager
-    hostname: bigdatacluster
     restart: always
     depends_on:
       - namenode
@@ -81,12 +90,197 @@ services:
       - datanode2
     env_file:
       - ./hadoop.env
+    networks:
+      - bigdatacluster
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075  resourcemanager:8088"
+      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075 datanode2:50075 resourcemanager:8088"
+#------------------------------------------hive--------------------------------------------------#
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    ports:
+      - "10000:10000"
+    env_file:
+      - ./hadoop.env
+    networks:
+      - bigdatacluster
+    environment:
+      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
+      SERVICE_PRECONDITION: "hive-metastore:9083"
+    depends_on:
+      - hive-metastore
 
-      
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    ports:
+      - "9083:9083"
+    env_file:
+      - ./hadoop.env
+    networks:
+      - bigdatacluster
+    command: /opt/hive/bin/hive --service metastore
+    environment:
+      SERVICE_PRECONDITION: "namenode:50070 datanode1:50075 datanode2:50075 hive-metastore-postgresql:5432"
+    depends_on:
+      - hive-metastore-postgresql
+
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgresql
+    depends_on:
+      - datanode1
+    networks:
+      - bigdatacluster
+#------------------------------------------spark--------------------------------------------------#
+  spark-master:
+    image: bde2020/spark-master:2.4.0-hadoop2.7
+    container_name: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+    env_file:
+      - ./hadoop.env
+    networks:
+      - bigdatacluster
+
+  spark-worker:
+    image: bde2020/spark-worker:2.4.0-hadoop2.7
+    container_name: spark-worker
+    ports:
+      - 8081:8081
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - HIVE_CORE_CONF_javax_jdo_option_ConnectionURL=jdbc:postgresql://hive-metastore/metastore
+    depends_on:
+      - spark-master
+    env_file:
+      - ./hadoop.env
+    networks:
+      - bigdatacluster
+#------------------------------------------airflow--------------------------------------------------#
+  redis:
+    image: 'redis:5.0.5'
+    container_name: airflow-rd_redis
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - airredis:/data/redis
+    networks:
+      - bigdatacluster
+
+  postgres:
+    image: postgres:9.6
+    container_name: airflow-rd_postgres
+    env_file:
+      - ./hadoop.env
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - airpostgres:/data/postgres
+    networks:
+      - bigdatacluster
+
+  webserver:
+    image: puckel/docker-airflow:1.10.9
+    container_name: airflow-rd_webserver
+    ports:
+      - "8083:8080"
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - bigdatacluster
+    env_file:
+      - ./hadoop.env
+    environment:
+      - LOAD_EX=n
+      - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - EXECUTOR=Celery
+      - CLUSTER_NAME=bigdatacluster
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+      - ./plugins:/usr/local/airflow/plugins
+    command: webserver
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  flower:
+    image: puckel/docker-airflow:1.10.9
+    container_name: airflow-rd_flower
+    ports:
+      - "5555:5555"
+    restart: always
+    depends_on:
+      - redis
+    env_file:
+      - ./hadoop.env
+    networks:
+      - bigdatacluster
+    environment:
+      - EXECUTOR=Celery
+    command: flower
+
+  scheduler:
+    image: puckel/docker-airflow:1.10.9
+    container_name: airflow-rd_scheduler
+    restart: always
+    depends_on:
+      - webserver
+    env_file:
+      - ./hadoop.env
+    networks:
+      - bigdatacluster
+    environment:
+      - CLUSTER_NAME=bigdatacluster
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+      - ./plugins:/usr/local/airflow/plugins
+    environment:
+      - LOAD_EX=n
+      - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - EXECUTOR=Celery
+    command: scheduler
+
+  worker:
+    image: puckel/docker-airflow:1.10.9
+    container_name: airflow-rd_worker
+    restart: always
+    depends_on:
+      - scheduler
+    env_file:
+      - ./hadoop.env
+    networks:
+      - bigdatacluster
+    environment:
+      - CLUSTER_NAME=bigdatacluster
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+      - ./plugins:/usr/local/airflow/plugins
+    environment:
+      - FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - EXECUTOR=Celery
+    command: worker
+
+networks:
+  bigdatacluster:
+    
 volumes:
   hadoop_namenode:
   hadoop_datanode1:
   hadoop_datanode2:
   hadoop_historyserver:
+  air_webserver:
+  air_scheduler:
+  air_worker:
