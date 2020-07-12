@@ -10,17 +10,17 @@ RUN pip install gunicorn
 # Install falcon
 RUN pip install falcon
 
-# add create_api folder from local into folder /create_api in container
-ADD ./create_api /create_api
+# add create_hello folder from local into folder /create_hello in container
+ADD ./create_hello /create_hello
 
 # file permission
-RUN chmod +x ./create_api/environment.sh
+RUN chmod +x ./create_hello/environment.sh
 
 # expose port
 EXPOSE 3000
 
 # set working directory active in container
-WORKDIR /create_api
+WORKDIR /create_hello
 
 # environment inisiate
 ENV env_var_name=${env_var_name} 
