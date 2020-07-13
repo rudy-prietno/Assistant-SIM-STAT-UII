@@ -1,7 +1,8 @@
-# parent class
+# library
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+# parent class
 class adminDB:
     def __init__(self, **kwargs):
         # set default value
@@ -105,7 +106,7 @@ class operationdb(adminDB):
                 sh.connectiondb().close()
 
     # # instance method for create table
-    def cr_table(self, dbname, tabname, colname):
+    def cr_table(self, tabname, colname):
         try:
             sh= operationdb(
                 host="{}".format(self.host),
@@ -116,7 +117,7 @@ class operationdb(adminDB):
             )
             cursor= sh.connectiondb()
             cursor.execute("CREATE TABLE IF NOT EXISTS {} ({})".format(tabname, colname))
-            print("table '{}' has been successfully created in '{}'".format(tabname, dbname))
+            print("table '{}' has been successfully created in '{}'".format(tabname))
         except (Exception) as error :
             print ("Error while connecting to PostgreSQL", error)
         finally:
