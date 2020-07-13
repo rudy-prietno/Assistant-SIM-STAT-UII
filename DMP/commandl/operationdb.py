@@ -117,7 +117,7 @@ class operationdb(adminDB):
             )
             cursor= sh.connectiondb()
             cursor.execute("CREATE TABLE IF NOT EXISTS {} ({})".format(tabname, colname))
-            print("table '{}' has been successfully created in '{}'".format(tabname))
+            print("table '{}' has been successfully created".format(tabname))
         except (Exception) as error :
             print ("Error while connecting to PostgreSQL", error)
         finally:
