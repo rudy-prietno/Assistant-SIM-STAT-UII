@@ -116,8 +116,32 @@ class operationdb(adminDB):
                 password="{}".format(self.password)
             )
             cursor= sh.connectiondb()
-            cursor.execute("CREATE TABLE IF NOT EXISTS {} ({})".format(tabname, colname))
+            cursor.execute("""
+                    drop table if exists {};
+                    create table if not exists {} ({})""".format(tabname, tabname, colname)
+                    )
             print("table '{}' has been successfully created".format(tabname))
+        except (Exception) as error :
+            print ("Error while connecting to PostgreSQL", error)
+        finally:
+            #closing database connection.
+            if(sh.connectiondb()):
+                cursor.close()
+                sh.connectiondb().close()
+
+    def multicr_table(self, commands):
+        try:
+            sh= operationdb(
+                host="{}".format(self.host),
+                port="{}".format(self.port),
+                dbname="{}".format(self.dbname),
+                user="{}".format(self.user),
+                password="{}".format(self.password)
+            )
+            cursor= sh.connectiondb()
+            for command in commands:
+                cursor.execute(command)
+            print("tables have been successfully created")
         except (Exception) as error :
             print ("Error while connecting to PostgreSQL", error)
         finally:
