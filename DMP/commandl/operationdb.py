@@ -8,8 +8,8 @@ class adminDB:
         arguments = {'host':'0.0.0.0', 
                      'port':5432,
                      'dbname':'',
-                     'user':'postgres',
-                     'password':'secrect'
+                     'user':'',
+                     'password':''
                      }
         # call update value
         arguments.update(kwargs)
@@ -33,10 +33,20 @@ class adminDB:
         
         return conn.cursor()
 
+
+# Child class (inherits from adminDB class)
+class operationdb(adminDB):
     # instance method for show all databases
     def alldb(self):
         try:
-            sh= adminDB()
+            # sh= adminDB()
+            sh= operationdb(
+                host="{}".format(self.host),
+                port="{}".format(self.port),
+                dbname="{}".format(self.dbname),
+                user="{}".format(self.user),
+                password="{}".format(self.password)
+            )       
             cursor= sh.connectiondb()
             cursor.execute('SELECT datname FROM pg_database')
             record= cursor.fetchall()
@@ -52,13 +62,19 @@ class adminDB:
     # instance method for create database
     def create_db(self, dbname):
         try:
-            sh= adminDB()
+            sh= operationdb(
+                host="{}".format(self.host),
+                port="{}".format(self.port),
+                dbname="{}".format(self.dbname),
+                user="{}".format(self.user),
+                password="{}".format(self.password)
+            )
             cursor= sh.connectiondb()
             cursor.execute("select 1 from pg_catalog.pg_database where datname = '{}'".format(dbname))
             exists = cursor.fetchone()
             if not exists:
                 cursor.execute("create database {}".format(dbname))
-                print("done")
+                print("done writing the database '{}'".format(dbname))
         except (Exception) as error :
             print ("Error while connecting to PostgreSQL", error)
         finally:
@@ -70,10 +86,16 @@ class adminDB:
     # instance method for remove database
     def remove_db(self, dbname):
         try:
-            sh= adminDB()
+            sh= operationdb(
+                host="{}".format(self.host),
+                port="{}".format(self.port),
+                dbname="{}".format(self.dbname),
+                user="{}".format(self.user),
+                password="{}".format(self.password)
+            )
             cursor= sh.connectiondb()
             cursor.execute("drop database if exists {}".format(dbname))
-            print("remove database {} done".format(dbname))
+            print("remove database '{}' done".format(dbname))
         except (Exception) as error :
             print ("Error while connecting to PostgreSQL", error)
         finally:
@@ -82,13 +104,19 @@ class adminDB:
                 cursor.close()
                 sh.connectiondb().close()
 
-    # instance method for create table
+    # # instance method for create table
     def cr_table(self, dbname, tabname, colname):
         try:
-            sh= adminDB(dbname="{}".format(dbname))
+            sh= operationdb(
+                host="{}".format(self.host),
+                port="{}".format(self.port),
+                dbname="{}".format(self.dbname),
+                user="{}".format(self.user),
+                password="{}".format(self.password)
+            )
             cursor= sh.connectiondb()
             cursor.execute("CREATE TABLE IF NOT EXISTS {} ({})".format(tabname, colname))
-            print("table {} has been successfully created in {}".format(tabname, dbname))
+            print("table '{}' has been successfully created in '{}'".format(tabname, dbname))
         except (Exception) as error :
             print ("Error while connecting to PostgreSQL", error)
         finally:
