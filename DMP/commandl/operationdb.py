@@ -6,7 +6,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 class adminDB:
     def __init__(self, **kwargs):
         # set default value for connection db
-        arguments = {'host':'', 
+        arguments = {'host':'0.0.0.0', 
                      'port':5432,
                      'dbname':'',
                      'user':'',
