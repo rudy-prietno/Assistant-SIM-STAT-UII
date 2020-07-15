@@ -184,7 +184,7 @@ class steward(adminDB):
                 sh.connectiondb().close()
 
     # instance method for show name and data type columns in specific table
-    def det_table(self, table_name):
+    def det_table(self, tabname):
         try:
             sh= steward(
                 host="{}".format(self.host),
@@ -197,10 +197,10 @@ class steward(adminDB):
             cursor.execute("""SELECT column_name, data_type
                               FROM INFORMATION_SCHEMA.COLUMNS 
                               WHERE table_name = '{}';
-                           """.format(table_name)
+                           """.format(tabname)
                         )
             record= cursor.fetchall()
-            print("info column in table '{}' - ".format(table_name), record,"\n")
+            print("info column in table '{}' - ".format(tabname), record,"\n")
         except (Exception) as error :
             print ("Error while connecting to PostgreSQL", error)
         finally:
