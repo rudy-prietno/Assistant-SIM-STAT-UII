@@ -221,8 +221,10 @@ class steward(adminDB):
                 password="{}".format(self.password)
             )       
             cursor= sh.connectiondb()
+
+            length_list = ','.join(['%s'] * len(colname.split(", ")))
+            query= """INSERT INTO {} ({}) VALUES ({})""".format(tabname, colname, length_list)
             
-            query= """INSERT INTO {} {} VALUES (%s, %s, %s)""".format(tabname, colname)
             cursor.executemany(query, rows)
 
             print("insert data into table '{}'".format(tabname))
