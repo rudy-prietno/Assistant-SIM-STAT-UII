@@ -208,3 +208,28 @@ class steward(adminDB):
             if(sh.connectiondb()):
                 cursor.close()
                 sh.connectiondb().close()
+
+    # instance method for insert row data
+    def insert_rows(self, tabname, colname, rows):
+        try:
+            # sh= adminDB()
+            sh= operationdb(
+                host="{}".format(self.host),
+                port="{}".format(self.port),
+                dbname="{}".format(self.dbname),
+                user="{}".format(self.user),
+                password="{}".format(self.password)
+            )       
+            cursor= sh.connectiondb()
+            
+            query= """INSERT INTO {} {} VALUES (%s, %s, %s)""".format(tabname, colname)
+            cursor.executemany(query, rows)
+
+            print("insert data into table '{}'".format(tabname))
+        except (Exception) as error :
+            print ("Error while connecting to PostgreSQL", error)
+        finally:
+            #closing databases connection.
+            if(sh.connectiondb()):
+                cursor.close()
+                sh.connectiondb().close()
