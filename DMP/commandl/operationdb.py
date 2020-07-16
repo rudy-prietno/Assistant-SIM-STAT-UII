@@ -212,20 +212,20 @@ class steward(adminDB):
     # instance method for insert row data
     def insert_rows(self, tabname, colname, rows):
         try:
-            # sh= adminDB()
-            sh= operationdb(
+            sh= steward(
                 host="{}".format(self.host),
                 port="{}".format(self.port),
                 dbname="{}".format(self.dbname),
                 user="{}".format(self.user),
                 password="{}".format(self.password)
             )       
+
             cursor= sh.connectiondb()
 
-            length_list = ','.join(['%s'] * len(colname.split(", ")))
-            query= """INSERT INTO {} ({}) VALUES ({})""".format(tabname, colname, length_list)
-            
-            cursor.executemany(query, rows)
+            t= '({})'.format(colname)
+            argument_string = ",".join('{}'.format(len(colname.split(", "))* ("%s",)) % t for t in rows)
+
+            cursor.execute("INSERT INTO {table} VALUES".format(table=tabname) + argument_string)
 
             print("insert data into table '{}'".format(tabname))
         except (Exception) as error :
