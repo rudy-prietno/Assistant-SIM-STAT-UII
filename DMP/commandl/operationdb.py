@@ -238,6 +238,7 @@ class steward(adminDB):
                 sh.connectiondb().close()
 
     # instance method for insert row data from csv
+    # this function is not effective, this is only used for practicum
     def load_csv(self, file_path, tabname):
         try:
             sh= steward(
@@ -255,6 +256,7 @@ class steward(adminDB):
                                         delimiter = ',',
                                         quotechar = '"')
 
+                # make name "column" for table based on header
                 data=[]
                 for i in data_iter:
                     data.append(i)
@@ -267,9 +269,10 @@ class steward(adminDB):
             
                 colname_test=",".join(str(x) for x in out)
 
-                yu=[]
+                # set data input
+                datput=[]
                 for k in range(len(data[1:])):
-                    yu.append(tuple(data[1:][k]))
+                    datput.append(tuple(data[1:][k]))
 
                 t= '({})'.format(colname)  
 
@@ -281,7 +284,7 @@ class steward(adminDB):
                 )
 
             #  insert data into table
-            argument_string = ",".join('{}'.format(len(colname.split(","))* ("%s",)) % t for t in yu)
+            argument_string = ",".join('{}'.format(len(colname.split(","))* ("%s",)) % t for t in datput)
             cursor.execute(
                 """INSERT INTO {table} VALUES""".format(table=tabname) + argument_string
             )
