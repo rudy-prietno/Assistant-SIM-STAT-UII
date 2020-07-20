@@ -1,4 +1,5 @@
 # library
+import csv
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
@@ -232,6 +233,64 @@ class steward(adminDB):
             print ("Error while connecting to PostgreSQL", error)
         finally:
             #closing databases connection.
+            if(sh.connectiondb()):
+                cursor.close()
+                sh.connectiondb().close()
+
+    # instance method for insert row data from csv
+    def load_csv(self, file_path, tabname):
+        try:
+            sh= steward(
+                        host="{}".format(self.host),
+                        port="{}".format(self.port),
+                        dbname="{}".format(self.dbname),
+                        user="{}".format(self.user),
+                        password="{}".format(self.password)
+                    )
+            cursor= sh.connectiondb()
+
+            #  read csv file into array
+            with open(file_path, 'r') as dest_f:
+                data_iter = csv.reader( dest_f,
+                                        delimiter = ',',
+                                        quotechar = '"')
+
+                data=[]
+                for i in data_iter:
+                    data.append(i)
+            
+                colname=",".join(str(x) for x in data[0])
+
+                out=[]
+                for j in colname.split(','):
+                    out.append("{} varchar".format(j))
+            
+                colname_test=",".join(str(x) for x in out)
+
+                yu=[]
+                for k in range(len(data[1:])):
+                    yu.append(tuple(data[1:][k]))
+
+                t= '({})'.format(colname)  
+
+            #  create table base header csv             
+            cursor.execute("""
+                        drop table if exists {};
+                        create table if not exists {} ({})
+                        """.format(tabname, tabname, colname_test)
+                )
+
+            #  insert data into table
+            argument_string = ",".join('{}'.format(len(colname.split(","))* ("%s",)) % t for t in yu)
+            cursor.execute(
+                """INSERT INTO {table} VALUES""".format(table=tabname) + argument_string
+            )
+            
+            print("done, load data csv into table '{}'".format(tabname))
+        except (Exception) as error :
+            print ("Error while connecting to PostgreSQL", error)
+        finally:
+        #closing databases connection.
             if(sh.connectiondb()):
                 cursor.close()
                 sh.connectiondb().close()
