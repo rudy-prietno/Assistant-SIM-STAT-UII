@@ -1,5 +1,6 @@
 # library
 import csv
+import pandas as pd
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
@@ -294,6 +295,32 @@ class steward(adminDB):
             print ("Error while connecting to PostgreSQL", error)
         finally:
         #closing databases connection.
+            if(sh.connectiondb()):
+                cursor.close()
+                sh.connectiondb().close()
+
+
+    # instance method for running query aggregation etc
+    def querys(self, commands):
+        try:
+            sh= steward(
+                host="{}".format(self.host),
+                port="{}".format(self.port),
+                dbname="{}".format(self.dbname),
+                user="{}".format(self.user),
+                password="{}".format(self.password)
+            )
+            cursor= sh.connectiondb()
+            cursor.execute(commands["SQL"])
+            col_names = [cn[0] for cn in cursor.description]
+            record= cursor.fetchall()
+            dia= pd.DataFrame(record)
+            dia.columns = col_names
+            return dia
+        except (Exception) as error :
+            print ("Error while connecting to PostgreSQL", error)
+        finally:
+            #closing database connection.
             if(sh.connectiondb()):
                 cursor.close()
                 sh.connectiondb().close()
